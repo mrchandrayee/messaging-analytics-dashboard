@@ -1,0 +1,54 @@
+(() => {
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const campaigns=[
+{name:"Loyalty points expiring",detail:"VIP · 918 contacts",channel:"SMS",status:"Scheduled",date:"Scheduled in 6 d",sub:"Nov 8 · 1:30 PM",delivered:"—",replied:"—"},
+{name:"Holiday gift guide",detail:"Email subscribers · 2,783 contacts",channel:"Email",status:"Scheduled",date:"Scheduled in 4 d",sub:"Nov 6 · 9:00 AM",delivered:"—",replied:"—"},
+{name:"Black Friday teaser",detail:"All contacts · 4,321 contacts",channel:"SMS",status:"Scheduled",date:"Scheduled in 2 d",sub:"Nov 4 · 2:30 PM",delivered:"—",replied:"—"},
+{name:"Weekend pop-up reminder",detail:"VIP · 694 contacts",channel:"WhatsApp",status:"Sending",date:"Sending now",sub:"Started 10:30 AM",delivered:"96.4%",replied:"12.7%"},
+{name:"October product launch",detail:"All contacts · 5,120 contacts",channel:"Email",status:"Sent",date:"Oct 28",sub:"Completed",delivered:"98.2%",replied:"8.4%"},
+{name:"Welcome series",detail:"New subscribers · 1,240 contacts",channel:"WhatsApp",status:"Sent",date:"Oct 25",sub:"Completed",delivered:"97.1%",replied:"6.8%"},
+{name:"Cart recovery",detail:"Abandoned carts · 826 contacts",channel:"SMS",status:"Paused",date:"Oct 22",sub:"Paused by Noor",delivered:"91.0%",replied:"4.2%"},
+{name:"October newsletter",detail:"Email subscribers · 2,783 contacts",channel:"Email",status:"Draft",date:"Not scheduled",sub:"Edited yesterday",delivered:"—",replied:"—"},
+{name:"Customer feedback",detail:"Recent customers · 1,020 contacts",channel:"SMS",status:"Draft",date:"Not scheduled",sub:"Edited Oct 20",delivered:"—",replied:"—"}
+];
+let statusFilter="All",channelFilter="All",period="30d",reportFilter="All";
+function toast(s){let t=$("#toast");t.textContent=s;t.classList.add("show");clearTimeout(window._toast);window._toast=setTimeout(()=>t.classList.remove("show"),1700)}
+function modal(title,body){$("#modalContent").innerHTML=`<h2>${title}</h2>${body}`;$("#modal").classList.add("open")}
+function close(){ $("#modal").classList.remove("open") }
+$("#close").onclick=close;$("#modal").onclick=e=>{if(e.target.id==="modal")close()};
+function go(page){$$(".page").forEach(p=>p.classList.toggle("hidden",p.id!==page));$$(".rail-link[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));}
+$("#railNav").addEventListener("click",e=>{let b=e.target.closest("[data-page]");if(b)go(b.dataset.page)});
+function bars(id,values){$(id).innerHTML=values.map(v=>`<i style="height:${v}%"></i>`).join("")}
+bars("#audienceChart",[16,28,42,36,55,48,61,53]);bars("#deliveryTicks",Array.from({length:48},(_,i)=>48+(i*19%49)));bars("#campaignTicks",Array.from({length:38},(_,i)=>42+(i*17%42)));
+function lineChart(id,color="#df805e",seed=1){let d="";for(let i=0;i<=90;i++){let y=42-Math.sin(i*.31+seed)*7-Math.sin(i*.11)*10-Math.cos(i*.47+seed)*4+(i>80?(i-80)*1.8:0);d+=(i?"L":"M")+`${i*10} ${y} `}$(id).innerHTML=`<defs><linearGradient id="fillline" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".25"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="${d} L900 90 L0 90Z" fill="url(#fillline)"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.2"/>`}
+lineChart("#sentChart","#d77b5d",2);
+function reportChart(){let svg=$("#reportChart"),sets=[["#d77b5d",1],["#82ad91",2],["#8875ad",3]],out="";for(let [c,s] of sets){let d="";for(let i=0;i<=90;i++){let y=265-Math.abs(Math.sin(i*.16+s)*.5+Math.cos(i*.43+s)*.2+Math.sin(i*.07)*.3)*150-(s===1?25:s===2?10:0);d+=(i?"L":"M")+`${i*10} ${Math.max(20,y)} `}out+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="2.1"/>`}out+=[55,115,175,235].map(y=>`<path d="M0 ${y}H900" stroke="#eee9e1" stroke-dasharray="3 4"/>`).join("");svg.innerHTML=out}
+reportChart();
+function renderCampaigns(){let q=$("#campSearch").value.toLowerCase(),arr=campaigns.filter(c=>(statusFilter==="All"||c.status===statusFilter)&&(channelFilter==="All"||c.channel===channelFilter)&&(c.name+" "+c.detail).toLowerCase().includes(q));let sort=$("#sort").value;if(sort==="Name A–Z")arr.sort((a,b)=>a.name.localeCompare(b.name));if(sort==="Oldest first")arr.reverse();$("#campaignRows").innerHTML=arr.map((c,i)=>`<tr><td>${c.name}<small>${c.detail}</small></td><td><span class="channel-dot ${c.channel.toLowerCase()}">●</span> ${c.channel}</td><td><span class="status ${c.status.toLowerCase()}">● ${c.status}</span></td><td>${c.date}<small>${c.sub}</small></td><td>${c.delivered}</td><td>${c.replied}</td><td><button class="row-menu" data-row="${campaigns.indexOf(c)}">···</button></td></tr>`).join("")||`<tr><td colspan="7">No campaigns match these filters.</td></tr>`}
+renderCampaigns();
+$("#campTabs").onclick=e=>{let b=e.target.closest("[data-status]");if(!b)return;statusFilter=b.dataset.status;$$("[data-status]").forEach(x=>x.classList.toggle("selected",x===b));renderCampaigns()};
+$("#campSearch").oninput=renderCampaigns;$("#sort").onchange=renderCampaigns;
+$("#campaignRows").onclick=e=>{let b=e.target.closest("[data-row]");if(!b)return;let c=campaigns[Number(b.dataset.row)];modal(c.name,`<p>${c.detail}</p><p>Channel: <b>${c.channel}</b> · Status: <b>${c.status}</b></p><p>${c.date} · ${c.sub}</p><button class="export" id="editCampaign">Edit campaign</button> <button class="export" id="pauseCampaign">Pause / resume</button>`);$("#editCampaign").onclick=()=>{close();modal("Edit campaign",`<label>Campaign name</label><input id="editName" value="${c.name}"><label>Channel</label><select id="editChannel"><option>SMS</option><option>WhatsApp</option><option>Email</option></select><button class="primary" id="saveEdit">Save changes</button>`);$("#editChannel").value=c.channel;$("#saveEdit").onclick=()=>{c.name=$("#editName").value||c.name;c.channel=$("#editChannel").value;renderCampaigns();close();toast("Campaign updated")}};$("#pauseCampaign").onclick=()=>{c.status=c.status==="Paused"?"Sending":"Paused";renderCampaigns();close();toast("Campaign status updated")}};
+$("#newCampaign").onclick=()=>modal("New campaign",`<label>Campaign name</label><input id="newName" placeholder="e.g. Product launch"><label>Channel</label><select id="newChannel"><option>SMS</option><option>WhatsApp</option><option>Email</option></select><label>Audience</label><input id="newAudience" placeholder="All contacts"><button class="primary" id="createCampaign">Create campaign</button>`);
+$("#createCampaign")?.addEventListener("click",()=>{});
+document.addEventListener("click",e=>{
+ if(e.target.id==="createCampaign"){let name=$("#newName").value.trim();if(!name){toast("Enter a campaign name");return}campaigns.unshift({name,detail:$("#newAudience").value||"All contacts",channel:$("#newChannel").value,status:"Draft",date:"Not scheduled",sub:"Created just now",delivered:"—",replied:"—"});renderCampaigns();close();toast("Campaign created")}
+ if(e.target.id==="addCredits"||e.target.id==="creditsPageAdd")modal("Add credits",`<p>Current balance: <b>$1,820</b></p><label>Choose an amount</label><select id="creditAmount"><option>$50</option><option>$100</option><option>$250</option><option>$500</option></select><button class="primary" id="buyCredits">Continue</button>`);
+ if(e.target.id==="buyCredits"){close();toast("Credit checkout is a demo")}
+ if(e.target.id==="preferences")modal("Preferences",`<p>Workspace preferences and notification settings.</p><label><input type="checkbox" checked> Email me a weekly summary</label><label><input type="checkbox" checked> Notify me when a campaign completes</label><button class="primary" id="savePrefs">Save preferences</button>`);
+ if(e.target.id==="savePrefs"){close();toast("Preferences saved")}
+ if(e.target.id==="profile")modal("Noor · Workspace admin",`<p>Messaging Analytics workspace</p><p>Region: North America</p><button class="primary" id="closeProfile">Close</button>`);
+ if(e.target.id==="closeProfile")close();
+});
+$$("[data-period]").forEach(b=>b.onclick=()=>{period=b.dataset.period;$$("[data-period]").forEach(x=>x.classList.toggle("active",x===b));$("#messagesSent").textContent=period==="30d"?"121,506":"28,491";$("#todaySent").textContent=period==="30d"?"1,887":"942";lineChart("#sentChart","#d77b5d",period==="30d"?2:4);toast("Showing last "+period)});
+$$(".periods button").forEach(b=>b.onclick=()=>{$$(".periods button").forEach(x=>x.classList.toggle("selected",x===b));let n=b.textContent;let vals={"7d":["14,382","92.4","4.1","1.2"],"30d":["63,770","50.0","3.6","1.7"],"90d":["188,420","94.1","4.0","1.5"],"12m":["742,680","93.8","4.4","1.4"]}[n];$("#reportSent").textContent=vals[0];$("#reportDelivery").innerHTML=vals[1]+"<sub>%</sub>";$("#reportReply").innerHTML=vals[2]+"<sub>%</sub>";$("#reportResponse").innerHTML=vals[3]+"<sub> min</sub>";toast("Report range: "+n)});
+$$("[data-channel]").forEach(b=>b.onclick=()=>{channelFilter=b.dataset.channel;$$("[data-channel]").forEach(x=>x.classList.toggle("selected",x===b));let vals={All:["63,770","50.0","3.6","1.7"],SMS:["28,412","96.2","4.2","1.3"],WhatsApp:["21,305","94.8","6.8","1.1"],Email:["14,053","98.1","2.4","2.2"]}[channelFilter];$("#reportSent").textContent=vals[0];$("#reportDelivery").innerHTML=vals[1]+"<sub>%</sub>";$("#reportReply").innerHTML=vals[2]+"<sub>%</sub>";$("#reportResponse").innerHTML=vals[3]+"<sub> min</sub>";toast("Channel: "+channelFilter)});
+$$(".messages-month .pills button").forEach(b=>b.onclick=()=>{$$(".messages-month .pills button").forEach(x=>x.classList.toggle("active",x===b));toast("Showing "+b.textContent)});
+$$(".channel .pills button").forEach(b=>b.onclick=()=>{$$(".channel .pills button").forEach(x=>x.classList.toggle("active",x===b));toast("Channel mix: "+b.textContent)});
+$("#sync").onclick=()=>{let d=new Date();$("#syncTime").textContent="Just now";toast("Analytics synced at "+d.toLocaleTimeString())};
+$("#export").onclick=()=>{let rows=[["Metric","Value"],["Messages sent",$("#reportSent").textContent],["Delivery rate",$("#reportDelivery").textContent],["Reply rate",$("#reportReply").textContent],["Median first response",$("#reportResponse").textContent]];let csv=rows.map(r=>r.join(",")).join("\n");let a=document.createElement("a"),u=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.href=u;a.download="messaging-analytics-report.csv";a.click();URL.revokeObjectURL(u);toast("Report exported as CSV")};
+$("#globalSearch").onkeydown=e=>{if(e.key==="Enter"){let q=e.target.value.toLowerCase();go("campaigns");$("#campSearch").value=q;renderCampaigns()}};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")close();if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#globalSearch").focus()}});
+let audience=4853,messages=121506;
+setInterval(()=>{if(!$("#overview").classList.contains("hidden")){audience+=Math.random()>.6?1:0;messages+=Math.floor(Math.random()*3);$("#audience").textContent=audience.toLocaleString();$("#messagesSent").textContent=messages.toLocaleString()}},2600);
+})();
